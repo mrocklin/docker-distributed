@@ -1,24 +1,9 @@
 apiVersion: v1
-kind: Service
-metadata:
-  name: jupyter-notebook
-  labels:
-    name: jupyter-notebook
-spec:
-  # The LoadBalancer type is required to get a public IP
-  # address when running on Google Container Engine.
-  type: LoadBalancer
-  ports:
-    - port: 80
-      targetPort: 8888
-  selector:
-    name: jupyter-notebook
----
-apiVersion: v1
 kind: ReplicationController
 metadata:
   labels:
     name: jupyter-notebook
+    app: distributed
   name: jupyter-notebook
 spec:
   replicas: 1
@@ -31,15 +16,16 @@ spec:
     spec:
       containers:
         - name: jupyter-notebook
-          image: ogrisel/distributed:latest
-          args: ["start-notebook.sh"]
+          image: mdurant/docker-distributed:renew
+          args: ["jupyter", "notebook", "--config=/work/config/jupyter_notebook_config.py", "/work"]
           ports:
             - name: http
               containerPort: 8888
-          volumeMounts:
-            - mountPath: /work
-              name: docker-distributed-repo
-      volumes:
-        - name: docker-distributed-repo
-          gitRepo:
-            repository: "https://github.com/ogrisel/docker-distributed"
+          resources:
+            requests:
+              cpu: 1
+              memory: 4Gi
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsUser: 1000
+          workingDir: /work
